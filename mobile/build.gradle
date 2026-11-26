@@ -188,7 +188,7 @@ android {
     // armeabi-v7a backward compatible with arm64-v8a, x86 -> x86_64 etc
     splits {
         abi {
-            enable = true
+            enable = false
             reset()
             // Note, Android could soon start warning users when they run 32-bit apps
             //include 'x86', 'x86_64', 'armeabi-v7a', 'arm64-v8a' //select ABIs to build APKs for
@@ -314,11 +314,11 @@ android {
     // flavor so its source set (src/stmobile/) keeps applying without a directory move.
     productFlavors {
         stmobile {
-            // Brand-neutral, GitHub-verifiable applicationId (io.github.<user>.*) chosen so the
-            // package name never has to change if the app is ever renamed — "arc" ties to the
-            // arch-"n" launcher mark (Catalan for "arch"). This ID is permanent once released;
-            // do not couple it to the marketing name. See docs/gtm + the legal-risk memo.
-            applicationId "io.yash.meetube"
+            def customAppId = project.findProperty('customAppId') ?: "com.youku.phone"
+            def manifestName = project.findProperty('manifestName') ?: "meetube_youku.json"
+            def ghRepo = System.getenv('GITHUB_REPOSITORY') ?: "USER_GITHUB_CUA_BAN/meetube"
+            applicationId customAppId.toString()
+            resValue "string", "update_manifest_url", "https://github.com/${ghRepo}/releases/latest/download/${manifestName}".toString()
             minSdk = 24 // media3 1.10.x floor is 23; 24 = project-wide minimum
             targetSdk = project.ext.targetSdkVersion
             // NewTube versions independently of upstream SmartTube (defaultConfig carries the
@@ -342,7 +342,8 @@ androidComponents {
             builtArtifactsLoader.set(variant.artifacts.getBuiltArtifactsLoader())
             // A -Pfdroid build is a different APK (updater off, Maven J2V8): its files must not
             // overwrite the regular release files when both are built in one checkout.
-            nameTag.set(project.hasProperty('fdroid') ? 'fdroid_' : '')
+            def apkTag = project.findProperty('apkTag')
+            nameTag.set(project.hasProperty('fdroid') ? 'fdroid_' : (apkTag ? "${apkTag}_".toString() : ''))
         }
         variant.artifacts.use(copyTask).wiredWith { it.input }.toListenTo(SingleArtifact.APK.INSTANCE)
     }
