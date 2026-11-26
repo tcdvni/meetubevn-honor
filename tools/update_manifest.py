@@ -150,7 +150,7 @@ def main():
     ap.add_argument("--dist", required=True, help="folder with the release APKs")
     ap.add_argument("--out", required=True)
     ap.add_argument("--versions", type=int, default=4, help="how many versions' changelogs to list")
-    ap.add_argument("--flavor", default="", help="optional package flavor tag, e.g. youku or yt")
+    ap.add_argument("--flavor", default="", help="optional package flavor tag, e.g. youku or qiyi")
     args = ap.parse_args()
 
     name = args.tag[1:] if args.tag.startswith("v") else args.tag
