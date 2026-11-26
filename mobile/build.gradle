@@ -48,7 +48,7 @@ abstract class CopyRenamedApks extends DefaultTask {
         builtArtifacts.elements.each { artifact ->
             def abi = artifact.filters.find { it.filterType.toString() == 'ABI' }?.identifier ?: 'universal'
             def version = (artifact.versionName ?: 'unknown').split(' ')[0] // without the code name
-            def outputFile = new File(outputDirectory, "MeeTube_${version}_${nameTag.get()}${abi}.apk")
+            def outputFile = new File(outputDirectory, "MeeTubeVN_${version}_${nameTag.get()}${abi}.apk")
             Files.copy(new File(artifact.outputFile).toPath(), outputFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
         }
     }
@@ -307,18 +307,14 @@ android {
 
     // gradle 4.6 migration: disable dimensions mechanism
     // more: https://proandroiddev.com/advanced-android-flavors-part-4-a-new-version-fc2ad80c01bb
-    flavorDimensions "default"
+    flavorDimensions "pkg", "default"
 
     // NEWTUBE(phone-only): the TV flavors (stbeta/ststable/stfdroid) are gone — see the
     // tv-legacy git tag for the last commit that built them. stmobile stays a (single)
     // flavor so its source set (src/stmobile/) keeps applying without a directory move.
     productFlavors {
         stmobile {
-            def customAppId = project.findProperty('customAppId') ?: "com.youku.phone"
-            def manifestName = project.findProperty('manifestName') ?: "meetube_youku.json"
-            def ghRepo = System.getenv('GITHUB_REPOSITORY') ?: "USER_GITHUB_CUA_BAN/meetube"
-            applicationId customAppId.toString()
-            resValue "string", "update_manifest_url", "https://github.com/${ghRepo}/releases/latest/download/${manifestName}".toString()
+            dimension "default"
             minSdk = 24 // media3 1.10.x floor is 23; 24 = project-wide minimum
             targetSdk = project.ext.targetSdkVersion
             // NewTube versions independently of upstream SmartTube (defaultConfig carries the
@@ -330,6 +326,14 @@ android {
             versionCode 30601
             versionName "3.6.1 Fury"
         }
+        youku {
+            dimension "pkg"
+            applicationId "com.youku.phone"
+        }
+        qiyi {
+            dimension "pkg"
+            applicationId "com.qiyi.video"
+        }
     }
 }
 
@@ -337,13 +341,14 @@ android {
 // stable release filename instead of mutating AGP's internal package task/output model.
 androidComponents {
     onVariants(selector().all()) { variant ->
+        def fname = variant.flavorName ?: ''
+        def pkgTag = fname.startsWith('youku') ? 'youku_' : (fname.startsWith('qiyi') ? 'qiyi_' : '')
         def copyTask = tasks.register("copyRenamedApksFor${variant.name.capitalize()}", CopyRenamedApks) {
             output.set(layout.buildDirectory.dir("outputs/renamed_apks/${variant.name}"))
             builtArtifactsLoader.set(variant.artifacts.getBuiltArtifactsLoader())
             // A -Pfdroid build is a different APK (updater off, Maven J2V8): its files must not
             // overwrite the regular release files when both are built in one checkout.
-            def apkTag = project.findProperty('apkTag')
-            nameTag.set(project.hasProperty('fdroid') ? 'fdroid_' : (apkTag ? "${apkTag}_".toString() : ''))
+            nameTag.set((project.hasProperty('fdroid') ? 'fdroid_' : '') + pkgTag)
         }
         variant.artifacts.use(copyTask).wiredWith { it.input }.toListenTo(SingleArtifact.APK.INSTANCE)
     }
