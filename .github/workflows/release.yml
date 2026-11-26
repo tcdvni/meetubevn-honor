@@ -1,7 +1,7 @@
-# Builds the signed MeeTubeVN APKs (youku & qiyi universal).
+# Builds the signed MeeTubeVN APKs (youku, qiyi & yt universal).
 # - Push a tag vX.Y.Z (matching build.gradle's stmobile versionName "X.Y.Z Name" and the top
-#   CHANGELOG.md entry): publishes the GitHub release "MeeTubeVN X.Y.Z Name" with the 2 universal
-#   APKs and meetube_youku.json / meetube_qiyi.json for the in-app updater.
+#   CHANGELOG.md entry): publishes the GitHub release "MeeTubeVN X.Y.Z Name" with the 3 universal
+#   APKs and meetube_youku.json / meetube_qiyi.json / meetube_yt.json for the in-app updater.
 # - Run it by hand (Actions > Release > Run workflow): builds and keeps the APKs as artifacts only.
 # Secrets: SIGNING_KEY (the .jks, base64), KEY_STORE_PASSWORD, ALIAS, KEY_PASSWORD. Every release
 # must use the same key or installed apps refuse the update.
@@ -50,7 +50,7 @@ jobs:
       - name: Build
         run: |
           chmod +x gradlew
-          ./gradlew :mobile:assembleYoukuStmobileRelease :mobile:assembleQiyiStmobileRelease
+          ./gradlew :mobile:assembleYoukuStmobileRelease :mobile:assembleQiyiStmobileRelease :mobile:assembleYtStmobileRelease
 
       - name: Collect APKs
         id: meta
@@ -58,6 +58,7 @@ jobs:
           mkdir dist
           cp mobile/build/outputs/renamed_apks/youkuStmobileRelease/*.apk dist/
           cp mobile/build/outputs/renamed_apks/qiyiStmobileRelease/*.apk dist/
+          cp mobile/build/outputs/renamed_apks/ytStmobileRelease/*.apk dist/
           ls -l dist
           # The stmobile flavor's versionName, e.g. "3.2.0 Rebirth" (defaultConfig's comes first).
           echo "name=$(grep -oP 'versionName "\K[0-9]+\.[0-9]+\.[0-9]+[^"]*' mobile/build.gradle | tail -n 1)" >> "$GITHUB_OUTPUT"
@@ -80,6 +81,7 @@ jobs:
           # Fails unless the tag, build.gradle and CHANGELOG.md agree on the version.
           python3 tools/update_manifest.py --tag "$TAG" --dist dist --flavor youku --out dist/meetube_youku.json
           python3 tools/update_manifest.py --tag "$TAG" --dist dist --flavor qiyi --out dist/meetube_qiyi.json
+          python3 tools/update_manifest.py --tag "$TAG" --dist dist --flavor yt --out dist/meetube_yt.json
           # Release notes: which APK to pick, then this version's CHANGELOG.md section without its heading.
           awk -v h="## $NAME" '$0 == h {on=1; next} on && /^## / {exit} on' CHANGELOG.md > changes.md
           test -s changes.md
@@ -91,6 +93,7 @@ jobs:
             echo "| :-- | :-- |"
             echo "| **com.youku.phone** | [youku universal](${url}_youku_universal.apk) |"
             echo "| **com.qiyi.video** | [qiyi universal](${url}_qiyi_universal.apk) |"
+            echo "| **com.google.android.youtube** | [yt universal](${url}_yt_universal.apk) |"
             echo
             cat changes.md
           } > notes.md
