@@ -18,6 +18,7 @@ translator fails falls back to English in the app. Usage (release.yml runs it on
 """
 import argparse
 import json
+import os
 import pathlib
 import re
 import sys
@@ -25,7 +26,7 @@ import urllib.parse
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-REPO = "yashoncode/meetube"
+REPO = os.environ.get("GITHUB_REPOSITORY", "yashoncode/meetube")
 # x86_64 and anything else get the universal APK (arm64-v8a + armeabi-v7a), the README's "not sure"
 # file: x86_64 devices run it through ARM translation. One without translation had no release APK
 # to install in the first place (the x86 one runs only where 32-bit x86 is also supported).
@@ -149,6 +150,7 @@ def main():
     ap.add_argument("--dist", required=True, help="folder with the release APKs")
     ap.add_argument("--out", required=True)
     ap.add_argument("--versions", type=int, default=4, help="how many versions' changelogs to list")
+    ap.add_argument("--flavor", default="", help="optional package flavor tag, e.g. youku or qiyi")
     args = ap.parse_args()
 
     name = args.tag[1:] if args.tag.startswith("v") else args.tag
@@ -161,37 +163,4 @@ def main():
 
     gradle = (ROOT / "mobile" / "build.gradle").read_text(encoding="utf-8")
     # The stmobile flavor's pair (defaultConfig still carries upstream's 2387 / "31.97").
-    code = re.search(r'versionCode\s+(\d+)\s+versionName\s+"' + re.escape(name) + '( [^"]+)?"', gradle)
-    if not code or int(code.group(1)) != version_code(name):
-        sys.exit(f"build.gradle has no versionCode {version_code(name)} for versionName {name}")
-
-    dist = pathlib.Path(args.dist)
-    base = f"https://github.com/{REPO}/releases/download/{args.tag}"
-    package = {}
-    for abi in ABIS:
-        apk = f"MeeTube_{name}_{abi}.apk"
-        if (dist / apk).is_file():
-            package[f"downloadUrlList_{abi}"] = [f"{base}/{apk}"]
-            package[f"downloadSize_{abi}"] = (dist / apk).stat().st_size
-    universal = f"MeeTube_{name}_universal.apk"
-    if not (dist / universal).is_file():
-        sys.exit(f"{universal} is missing from {dist}")
-    package["downloadUrlList"] = [f"{base}/{universal}"]
-    package["downloadSize"] = (dist / universal).stat().st_size
-
-    manifest = {"package": package}
-    for version in list(english)[:args.versions]:
-        entry = {"versionCode": version_code(version),
-                 "changelog": english[version][:MAX_LINES_PER_VERSION]}
-        for key, target in app_languages().items():
-            lines = (written.get(key) or {}).get(version) or translate(entry["changelog"], target)
-            if lines:
-                entry["changelog_" + key] = lines[:MAX_LINES_PER_VERSION]
-        manifest[version] = entry
-    manifest[name]["changelog"].append(SUPPORT_LINE)
-
-    pathlib.Path(args.out).write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
-if __name__ == "__main__":
-    main()
+    code = re.search(r'versionCode\s+(\d+)\s+versionName\s+"' + re.
