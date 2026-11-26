@@ -334,6 +334,10 @@ android {
             dimension "pkg"
             applicationId "com.qiyi.video"
         }
+        yt {
+            dimension "pkg"
+            applicationId "com.google.android.youtube"
+        }
     }
 }
 
@@ -342,7 +346,7 @@ android {
 androidComponents {
     onVariants(selector().all()) { variant ->
         def fname = variant.flavorName ?: ''
-        def pkgTag = fname.startsWith('youku') ? 'youku_' : (fname.startsWith('qiyi') ? 'qiyi_' : '')
+        def pkgTag = fname.startsWith('youku') ? 'youku_' : (fname.startsWith('qiyi') ? 'qiyi_' : (fname.startsWith('yt') ? 'yt_' : ''))
         def copyTask = tasks.register("copyRenamedApksFor${variant.name.capitalize()}", CopyRenamedApks) {
             output.set(layout.buildDirectory.dir("outputs/renamed_apks/${variant.name}"))
             builtArtifactsLoader.set(variant.artifacts.getBuiltArtifactsLoader())
