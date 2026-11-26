@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="update_urls">
+        <item>https://github.com/tcdvni/meetubevn-honor/releases/latest/download/meetube_qiyi.json</item>
+        <item>https://github.com/tcdvni/meetubevn-honor/releases/download/latest/meetube_qiyi.json</item>
+    </string-array>
+</resources>
